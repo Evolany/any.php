@@ -2,66 +2,57 @@
 A extremely simple &amp; fast php web framework
 
 # Goals
+
 ### Extremely Fast
 * Almost As fast as non-framework to handle JSON request.
-* < 14 ms under 100*10 requests.
-* Test with db query &amp; 7.5kb json response. using ApacheBench
 
 ### Extremely Easy to Use
-* Only 1 file, with about 25 functions to remember.
+* Only `1 file` with about 25 functions to remember.
 
-# Features.
+# Contents
 
-### RESTful Dispatching 
-* /{$controller}/{$action}/{$ID}
-* /@{$scheme_name}?{$query_conditions}
+## Tutorial
+* [Installation](#installation)
+* [Hello world](#hello-world)
 
-### HTML Template & Custom Tags
-* 3~5 times faster than Smarty
-* Only about 10 tags to remember.
-* Define your own tags easily
+## Features
+* [Structure](#structure)
+* [Configurations](#configurations)
+* [Controllers](#controllers)
+* [URL Dispatching](#url-dispatching)
+* [Database](#database)
+* [Auto RESTful API](#auto-restful-api)
+* [HTML Template](#html-template)
+* [Cache](#cache)
+* [Filters](#filters)
+* [Permission](#permission)
+* [Modules](#modules)
+* [Delegates](#delegates)
+* [Localization](#localization)
+* [Auto Unit Test](#auto-unit-test)
 
-### Simple &amp; Fast DB access
-* No need to define any model, just provide us a scheme file. we do the rest things for you. 
-
-### Auto RESTful response.
-* No controller, no model, all you need to do is just to define a db scheme and permissions.
-
-### L2 Cache
-* ARC + memcached
-
-### Unix-like Permission check.
-* Check all controller/actions permission with annotation
-* Declare permissions like unix command line.
-
-### Annotations &amp; PHPDoc
-* Support variable custom annotations.
-* Generate PHP Doc automatically
-
-### Filters like Servlet
-* Support filters like Java-Servlet to handle auth / oauth process.
-
-### Auto Unit Test
-* Using csv files to define test cases only.
-* Auto test both JSON and HTML.
-
-### Tools
-* Mail
-* CSV
-* GD2 (Image processing)
-* S3
-* SEO
-* Binary 
+## Tools
+* [Mail](#Mail)
+* [CSV](#CSV)
+* [GD2 (Image processing)](#GD2)
+* [S3](#S3)
+* [DataSet](#DataSet)
+* [PHPDoc](#PHPDoc)
+* [SEO](#SEO)
+* [Binary ](#Binary)
 
 ---
 
-# Requirement
+
+# Installation
+
+## Requirement
 
 * PHP 5.4 (with APC, GD2, Memcache(Memcached), PDO, pdo-mysql ...)
   or PHP 7.2+ with APCu ...
 * Memcached
 
-# Installation
+## Installation guide
 Check out from here
 ```sh
 cd YOUR_HTTP_DOCUMENT_ROOT 
@@ -129,8 +120,129 @@ sudo apachectl restart
 ### Check the result 
 Try it by accessing [http://YOUR_PROJECT_NAME.test] 
 
+---
 
-# RESTful dispatching
+# Structure
+
+| Folder | Description |
+| --- | --- |
+| /conf | Configuration files |
+| &nbsp;&nbsp;&nbsp;&nbsp;conf.inc | [Configuration](#configurations) file |
+| &nbsp;&nbsp;&nbsp;&nbsp;/schema/*.ini | [DB Schema](#db-schema) files |
+| &nbsp;&nbsp;&nbsp;&nbsp;text.csv | [Multi-lang text](#localization) file |
+| /controllers | [Controller](#controllers) files |
+| /delegate | [Delegate](#delegates) files |
+| /filters | [Filter](#filters) files |
+| /lib | 3rd party library files such as `aws.phar` |
+| /modules | [Module](#modules) files |
+| /script | Batch scripts files |
+| /test | [Test cases CSV](#auto-unit-test) files |
+| /tmp                | contains php files compiled from HTML Templates |
+| /views              | [HTML view templates](#html-template) |
+| /webroot            | a public folder for static contents |
+| &nbsp;&nbsp;&nbsp;&nbsp;/css | css files |
+| &nbsp;&nbsp;&nbsp;&nbsp;/font | ttf/otf font files |
+| &nbsp;&nbsp;&nbsp;&nbsp;/html | .htm static html files<br>without php programs |
+| &nbsp;&nbsp;&nbsp;&nbsp;/images | image files |
+| &nbsp;&nbsp;&nbsp;&nbsp;/js | javascript files |
+| /any.php | The gateway & framework file |
+
+
+# Configurations
+file path `conf/conf.inc`
+```php
+<?php
+class Conf{	
+  //available modes : Developing | Product | Maintenance ...
+  static $mode 				= 'Developing';
+  //default language settings, only works for T() function, @see Multi-lang
+  static $lang 				= 'jp';
+  //default controller file name belongs to folders under /controllers folder.
+  static $default_controller	        = 'top'; 
+  //default action function name
+  static $default_action		= null;
+  //custom path prefix of each request 
+  static $path_prefix			= '';
+  
+  
+  //MySQL settings
+  static $db_engine			= 'mysql';
+  static $db_host			= '127.0.0.1';
+  static $db_port			= '3306';
+  static $db_name			= 'mydb';
+  static $db_user			= 'root';
+  static $db_pass			= '123456';
+  
+  //Cross domain settings, to response requests from Widgets/<IFRAME>
+  static $cross_domain_methods          = 'GET, POST, PUT, DELETE, OPTIONS';
+  
+  //Cache settings
+  static $cache_hosts			= 'localhost';
+  static $cache_port			= '11211';
+  
+  //Session Settings
+  static $session_enable		= true;
+  static $session_lifetime	        = 86400;
+  
+  //Filter settings
+  static $filters		        = ['admin'=>'/^admin/','member'=>'/^member/'];
+}
+
+switch (Conf::$mode) {
+  case 'Developing':
+    Conf::$db_host		= '127.0.0.1';
+    Conf::$db_user		= 'root';
+    Conf::$db_pass		= 'root';
+    Conf::$server_host 	        = 'http://MY-PROJECT.test';
+    break;
+  case 'Product':
+    Conf::$db_host		= 'My_Prod_DB';
+    Conf::$db_user		= 'MyDBUserName';
+    Conf::$db_pass		= 'MyProdDBUserPass';
+    break;
+  case 'Maintenance':
+    Conf::$filters		= ['maintenance'=>'*'];
+    break;
+  default:
+    break;
+}
+
+```
+## Settings for each environment
+1. change the settings under `switch (Conf::$mode)` of `conf.inc`
+2. change `Conf::$mode` from `Developing` to yours
+
+# Controllers
+A controller file is a PHP program to handle requests<br>
+In `any.php` its under `/controllers` folder with file extention of `.inc` but not `.php`.<br>
+### Example
+The file name 
+```bash
+${PROJECT_HOME}/controllers/tasks.inc
+```
+```php
+<?php
+
+//default action , relative URL : GET /tasks
+function get($q){
+    //Understand user request
+    //Do DB Access
+    //Render JSON/HTML ...
+}
+
+//Another action , relative URL : /tasks/close
+function close($q){
+    //do tasks here
+}
+
+```
+## Nested Path
+Controllers can be put into different folders
+```
+Preparing
+```
+
+# URL dispatching
 | URI Pattern	| HTTP Method | Delegate File | Delegate Function |
 |-----|-----|-----|-----|
 | [/PATH]/CONTROLLER_NAME/[/ID] | GET<br>POST<br>PUT<br>DELETE | controllers/CONTROLLER_NAME.inc | get(\$params)<br>@see example_1<br>post(\$params)<br>@see example_2<br>put(\$params)<br>delete(\$params) |
@@ -204,7 +316,133 @@ function myaction($params){
 ```
 
 
-## DB & Restful Requests
+# Database
+
+## DB Schema
+To use DB functions, You must tell `any.php` about your db schemas (table structures) first. <br>
+the schema files are under 
+```bash
+${PROJECT_HOME}/conf/schemas/*.ini 
+```
+Here is a very simple example. of file `/conf/schemas/tasks.ini`
+```ini
+[general] 
+name = tasks	;table name = tasks 
+pk = id	        ;primary key = id 
+restful = "get,post" ;permit http get/post restful request. all : permit all ,none : disable auto restful 
+permission = F	;allow the default auth group (guest) to access with 1111 permission. //1111 : the 1st 1 represents GET, the 2nd is POST, then PUT, DELETE. F means 'all' 
+
+[schema] 
+id = "BIGINT NOT NULL AUTO_INCREMENT" 
+ownerId	= "BIGINT NOT NULL" 
+title	= "varchar(256)"	
+
+[index] 
+ownerId = "normal"	;create index on ownerId
+```
+### NOTICE
+* `[general]` > `name` must be same with the ini file name.
+* If you changed the settings of the ini file after `migrate`, you have to affect the changes by writting SQL by yourself.
+
+## DB Migration
+
+After defined the schema files. You can create tables using migrate method via command line. 
+
+```bash
+${PROJECT_HOME}>php any.php migrate
+# NOTICE: you have to create database and db user manually before running this command.
+```
+
+## DB Query
+
+```php
+/** 
+ * if useCache == true * we will get result from Cache first.
+ * with $sql as key * if there is no data in cache. the result from db will be add to cache * @see Use Cache for more information 
+ */ 
+$res = db_query($sql,$useCache=false); //$res is assoc-array
+```
+
+### DB Query With Condition
+@see `DB.inc` for more information about conditions.<br>
+
+### Syntax
+```php
+db_find(tablename, conditions); 
+```
+### example
+```php
+$res = db_find("tasks", [ "@fields" => "id", "regAt@>" => "2013-10-30", "title@?" => "Milk", ]); 
+```
+Equivalant SQL
+```SQL
+SELECT id FROM tasks WHERE regAt>'2013-10-30' AND title LIKE '%Milk%';
+```
+
+
+## DB Insert & Update
+### Syntax
+```php
+db_save(schemaName, data, returnId=false); //save or update
+```
+### Example 1
+```php
+db_save('tasks',[title=>'My New Task'],true); 
+```
+Equivalant SQL
+```SQL
+INSERT INTO tasks (title,regAt) VALUES('My New Task',$now); 
+```
+Returns 
+```json
+{id:5,title:"My New Task",regAt:$now}
+```
+
+### Example 2
+```php
+db_save('tasks',[id=>3, title=>'New title']); 
+```
+Equivalant SQL
+```SQL
+UPDATE tasks SET title='New title' WHERE id=3;
+```
+
+## DB Import 
+Insert multiple records to the same table to improve DB performance.
+```php
+db_import("tasks",[ [title=>"task1"], [title=>"task2",priority=>1], [title=>"task3"] ]); 
+```
+Equivalant SQL
+```SQL
+INSERT INTO tasks (title,priority,regAt) VALUES ("tasks1",0,$now),("tasks2",1,$now),("tasks3",0,$now);
+```
+
+## DB Transaction
+
+### Example
+insert into `tasks` table and get the last inserted id; <br>
+if there are errors, `db->rollback` will be called automatically
+```php
+$res = db_trans([ 
+  "insert into tasks (title) values ('my title')", 
+  "select LAST_INSERT_ID() as 'last_id'" 
+]); 
+$id = $res[0]["last_id"]; 
+```
+
+## Advanced Database Topics
+
+### Multiple Databases
+```
+Preparing
+```
+### Table Connection
+```
+Preparing
+```
+
+
+# Auto RESTful API
 
 | Command(URL) | Alias(PHP) | Syntax | Example | Description |
 |---|---|---|---|---|
@@ -450,14 +688,6 @@ db_find("tasks", ["title@!~"=>"abc|bcd"]);
 select * from tasks where title NOT REGEXP 'abc|bcd';
 ```
 
-## Use schema file
-
-@see : [general][restful] of chapter DB, Model, Schema
-
-
-# Dispatching
-
-
 ### Example 4 : 
 Use automatical RESTful mechanism to GET data <br>
 1. Get newest 20 tasks from tasks table 
@@ -538,162 +768,6 @@ if the is not logged in, then the result will be
 ```
 
 
-# DB 
-
-## DB Schema (table definations) 
-To use DB functions, You must tell `any.php` about your db schemas first. <br>
-the schema files are under 
-```bash
-${PROJECT_HOME}/conf/schemas/*.ini 
-```
-Here is a very simple example. of file `/conf/schemas/tasks.ini`
-```ini
-[general] 
-name = tasks	;table name = tasks 
-pk = id	        ;primary key = id 
-restful = "get,post" ;permit http get/post restful request. all : permit all ,none : disable auto restful 
-permission = F	;allow the default auth group (guest) to access with 1111 permission. //1111 : the 1st 1 represents GET, the 2nd is POST, then PUT, DELETE. F means 'all' 
-
-[schema] 
-id = "BIGINT NOT NULL AUTO_INCREMENT" 
-ownerId	= "BIGINT NOT NULL" 
-title	= "varchar(256)"	
-
-[index] 
-ownerId = "normal"	;create index on ownerId
-```
-### NOTICE
-* `[general]` > `name` must be same with the ini file name.
-* If you changed the settings of the ini file after `migrate`, you have to affect the changes by writting SQL by yourself.
-
-## DB Migration
-
-After defined the schema files. You can create tables using migrate method via command line. 
-
-```bash
-${PROJECT_HOME}>php any.php migrate
-# NOTICE: you have to create database and db user manually before running this command.
-```
-
-## DB Query
-
-```php
-/** 
- * if useCache == true * we will get result from Cache first.
- * with $sql as key * if there is no data in cache. the result from db will be add to cache * @see Use Cache for more information 
- */ 
-$res = db_query($sql,$useCache=false); //$res is assoc-array
-```
-
-### DB Query With Condition
-@see `DB.inc` for more information about conditions.<br>
-
-### Syntax
-```php
-db_find(tablename, conditions); 
-```
-### example
-```php
-$res = db_find("tasks", [ "@fields" => "id", "regAt@>" => "2013-10-30", "title@?" => "Milk", ]); 
-```
-Equivalant SQL
-```SQL
-SELECT id FROM tasks WHERE regAt>'2013-10-30' AND title LIKE '%Milk%';
-```
-
-
-## DB Insert & Update
-### Syntax
-```php
-db_save(schemaName, data, returnId=false); //save or update
-```
-### Example 1
-```php
-db_save('tasks',[title=>'My New Task'],true); 
-```
-Equivalant SQL
-```SQL
-INSERT INTO tasks (title,regAt) VALUES('My New Task',$now); 
-```
-Returns 
-```json
-{id:5,title:"My New Task",regAt:$now}
-```
-
-### Example 2
-```php
-db_save('tasks',[id=>3, title=>'New title']); 
-```
-Equivalant SQL
-```SQL
-UPDATE tasks SET title='New title' WHERE id=3;
-```
-
-## DB Import 
-Insert multiple records to the same table to improve DB performance.
-```php
-db_import("tasks",[ [title=>"task1"], [title=>"task2",priority=>1], [title=>"task3"] ]); 
-```
-Equivalant SQL
-```SQL
-INSERT INTO tasks (title,priority,regAt) VALUES ("tasks1",0,$now),("tasks2",1,$now),("tasks3",0,$now);
-```
-
-## DB Transaction
-
-### Example
-insert into `tasks` table and get the last inserted id; <br>
-if there are errors, `db->rollback` will be called automatically
-```php
-$res = db_trans([ 
-  "insert into tasks (title) values ('my title')", 
-  "select LAST_INSERT_ID() as 'last_id'" 
-]); 
-$id = $res[0]["last_id"]; 
-```
-
-# Cache
-We use both APC & Memcached as our cache system
-
-## GET/SET with cache functions
-```php
-/** 
- * @param key : key name
- * @param callback : a function returns value of $key, it is used when $key not exists in APC or Memcache 
- * @param sync: true means get from APC first then Memcache/Redis. false=APC only 
- */ 
-function cache_get($key, $callback, $sync=true){} 
-
-//set a cache by key value
-function cache_set($key, $value, $time=3600, $sync=true){} 
-
-//delete a cache by key name
-function cache_del($key,$sync=true){}
-
-//delete a cache
-function mc_get($key, $callback){}
-
-//get multiple keys
-function mc_gets($keys){};
-
-//delete a cache
-function mc_set($key, $value, $time=3600){}
-
-//delete a cache
-function mc_del($key){}
-
-/** @see Cache.inc for more informations*/
-```
-### Examples
-```php
-//if task in cache, then return. else fetch from db > return and add to cache.
-$task = cache_get("task_$taskId",function() use($taskId){
-    $task = db_find1st('tasks',[id=>$taskId]);
-    return $task;
-});
-```
-
-
 # HTML Template
 `any.php` provides a lightway & very fast HTML render.<br>
 There are only less than 10 kinds of keywords/syntax to remember, <br>
@@ -761,9 +835,6 @@ Here is the example of a layout file
 
 Keywords/Syntax	Example	Equivalent PHP code	Description
 
-
-
-
 | Syntax | Example | Equivalant PHP | Description |
 | --- | --- | --- | --- |
 | {$VAR_NAME} | {$myVar} | echo $myVar; | echo a php variable |
@@ -803,53 +874,49 @@ then the result will be
 <div>val_1</div> <div>val_2</div>
 ```
 
-# Localization (Multi-lang)
-`any.php` provides a very simple way to support multi-languages.<br>
 
-in your text file 
-```bash
-/conf/text.csv
-```
-## Format of the CSV file
-| id | en | jp | cn |
-| --- | --- | --- | --- | 
-| email | Email | メール | 邮件
-| name | Name | 氏名 | 姓名
 
-* the first line represents ID, and languages.
-* ID is the key name to find the word. it should be an unique value.
-  
-## Specify user language
-any.php will detect user's language automatically<br>
-well you can also specify the default language by setting the value of `$_SESSION['lang']`
+# Cache
+We use both APC & Memcached as our cache system
+
+## GET/SET with cache functions
 ```php
-$lang = $_SESSION['lang'] ?: (substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2) : Consts::$lang);
+/** 
+ * @param key : key name
+ * @param callback : a function returns value of $key, it is used when $key not exists in APC or Memcache 
+ * @param sync: true means get from APC first then Memcache/Redis. false=APC only 
+ */ 
+function cache_get($key, $callback, $sync=true){} 
+
+//set a cache by key value
+function cache_set($key, $value, $time=3600, $sync=true){} 
+
+//delete a cache by key name
+function cache_del($key,$sync=true){}
+
+//delete a cache
+function mc_get($key, $callback){}
+
+//get multiple keys
+function mc_gets($keys){};
+
+//delete a cache
+function mc_set($key, $value, $time=3600){}
+
+//delete a cache
+function mc_del($key){}
+
+/** @see Cache.inc for more informations*/
+```
+### Examples
+```php
+//if task in cache, then return. else fetch from db > return and add to cache.
+$task = cache_get("task_$taskId",function() use($taskId){
+    $task = db_find1st('tasks',[id=>$taskId]);
+    return $task;
+});
 ```
 
-## Syntax
-```php
-$label = T($id,[$args]);
-```
-### PHP Examples
-```php
-$label = T('name'); 
-```
-
-### HTML Template Examples
-```html
-<label for='name'>{% name}</label><input name='name' type='text'/>
-```
-
-### Advanced Usage (variables)
-`T()` function can also be used to replace variables<br>
-in your csv
-| id | en | jp | cn |
-| --- | --- | --- | --- | 
-| greeting_msg | Hi %s | %sさん、こんにちは！ | %s先生/女士, 你好！ |
-```php
-$msg = T('name', $_REQUEST['user_name']); 
-//`%s` will be replaced with `user_name` from HTTP request parameters
-```
 
 
 # Filters
@@ -906,19 +973,78 @@ class AuthFilter extends Filter{
 }
 ```
 
-# Permission & Auth Group
-Permission
+# Permission
+## Linux Permission System
 ```
-TODO
+-rw-r--r--@  1 soyoes  staff   7571 Dec 10 15:09 TODO.md
+```
+## Permission & Auth Group
+```
+Preparing
+```
+
+
+# Modules
+```
+Preparing
 ```
 
 
-# OAuth
+# Delegates
 ```
-TODO
+Preparing
 ```
 
-# Unit Test
+# Localization
+`any.php` provides a very simple way to support multi-languages.<br>
+
+in your text file 
+```bash
+/conf/text.csv
+```
+## Format of the CSV file
+| id | en | jp | cn |
+| --- | --- | --- | --- | 
+| email | Email | メール | 邮件
+| name | Name | 氏名 | 姓名
+
+* the first line represents ID, and languages.
+* ID is the key name to find the word. it should be an unique value.
+  
+## Specify user language
+any.php will detect user's language automatically<br>
+well you can also specify the default language by setting the value of `$_SESSION['lang']`
+```php
+$lang = $_SESSION['lang'] ?: (substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2) : Consts::$lang);
+```
+
+## Syntax
+```php
+$label = T($id,[$args]);
+```
+### PHP Examples
+```php
+$label = T('name'); 
+```
+
+### HTML Template Examples
+```html
+<label for='name'>{% name}</label><input name='name' type='text'/>
+```
+
+### Advanced Usage (variables)
+`T()` function can also be used to replace variables<br>
+in your csv
+| id | en | jp | cn |
+| --- | --- | --- | --- | 
+| greeting_msg | Hi %s | %sさん、こんにちは！ | %s先生/女士, 你好！ |
+```php
+$msg = T('name', $_REQUEST['user_name']); 
+//`%s` will be replaced with `user_name` from HTTP request parameters
+```
+
+
+# Auto Unit Test
 
 ## Test case file
 Create test case file under `/test` with a name of 
@@ -948,3 +1074,54 @@ then you will find the result HTML or JSON
 ```bash
 http://${YOUR_HOSTNAME}/${YOUR_CONTROLLER}/test_${YOUR_ACTION} 
 ```
+
+
+
+# OAuth
+```
+TODO
+```
+
+
+# Tools
+
+## Mail
+```
+Preparing
+```
+
+## CSV
+```
+Preparing
+```
+
+## GD2
+```
+Preparing
+```
+
+## S3
+```
+Preparing
+```
+
+## DataSet
+```
+Preparing
+```
+
+## PHPDoc
+```
+Preparing
+```
+
+## SEO
+```
+Preparing
+```
+
+## Binary 
+```
+Preparing
+```
+

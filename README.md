@@ -974,20 +974,112 @@ class AuthFilter extends Filter{
 ```
 
 # Permission
-## Linux Permission System
+
+in `any.php`, permission is described as a N-bit binary number , like [Linux permissions](http://linuxcommand.org/lc3_lts0090.php)
+
+## Linux Permission System Example
+@see [Linux file system permissions]
+```bash
+> ls -l
+-rw-r--r--@  1 username  staff   7571 Dec 10 15:09 TODO.md
+# you can change the permission with
+> chmod 755 TODO.md
+# then the permission will look like 
+-rwxr-xr-x@  1 username  staff   7571 Dec 10 15:09 TODO.md
 ```
--rw-r--r--@  1 soyoes  staff   7571 Dec 10 15:09 TODO.md
-```
+
+
 ## Permission & Auth Group
+
+To specify the user groups, You need to implement this delegate method under
+```bash
+/delegate/AuthDelegate.inc
 ```
-Preparing
+Here is the example, you have to return a `int` value between 0~N
+```php
+class AuthDelegate{
+  /**
+  * @return int: 0~N, which means current user's group ID
+  */
+  static function group(&$groups=null){
+    if (session_status() == PHP_SESSION_ACTIVE){//using session
+      if(!empty($_SESSION['user_id'])){
+        return 1;
+      }
+      if(!empty($_SESSION['admin_id'])){
+        return 2;
+      }
+    }
+    return 0;
+  }
+}
 ```
+
+## To set permissions
+
+1) For Normal request:<br>
+`controllers/YOUR_CONTROLLER.inc`
+```php
+/**
+ * @permission = 8CF
+ */
+function get($q){...}
+```
+
+2) For Auto RESTful request:<br>
+`conf/schemas/YOUR_SCHEMA.ini`
+```ini
+[general]
+permisstion = 08F
+```
+
+meanings of each bit (08F)
+* 1st : permission of guest group default=8 (read only)
+* Nth : permission of Nth auth group (N = AuthDelegate::group()). default = F (all permission)
+
+so the meaning of `08F` will be
+* 1st=0 : No access for 1st group (default is GUEST)
+* 2nd=8 : READ only access for 2nd group (default is USER)
+* 3rd=F : ALL access for 3rd group (default is ADMIN)
+
+Please `NOTICE` that, since all the permission data is cached in APCu, <br>
+to affect the changes, you have to `restart` your Apache/Nginx server, to clear the cache.
+
+## Available numbers of each bit(auth group)
+| HEX | Binary | description |
+| --- | --- | --- |
+| 0 | 0000 | no permission for this group |
+| 8 | 1000 | read only(GET) |
+| 9 | 1001 | read(GET) + delete(DELETE) |
+| A | 1010 | read(GET) + update(PUT) |
+| B | 1011 | read(GET) + update(PUT), delete(DELETE) |
+| C | 1100 | read(GET) + add(POST) |
+| D | 1101 | read(GET) + add(POST), delete(DELETE) |
+| E | 1110 | read(GET) + add(POST), update(PUT) |
+| F | 1111 | read(GET) + add(POST), update(PUT), delete(DELETE) |
 
 
 # Modules
+To separate Model (DB/file/remote URL access) from view controllers<br>
+we suggest to extract business logics to Module files.<br>
+these `Module` files can be found under
+
+```bash
+${PROJECT_HOME}/modules/*.inc
 ```
-Preparing
+
+for example, to use all features of FB
+```php
+//file path : /modules/Fb.inc
+
+//to get settings
+$settings = Fb::getSettings($token, 'menu');
+
 ```
+`NOTICE` : <br>
+* `Module` filename has to be `capitalized`. with an extenstion of `.inc`
+* All public methods should be `static` instead of `instance method`
+* `DO NOT` need to `#include` the module file, `any.php` will do that for you.
 
 
 # Delegates
@@ -1086,24 +1178,105 @@ TODO
 # Tools
 
 ## Mail
+```php
+//syntax
+Email::sendHTML($from,$to,$template,$data=[],$title=false);
+
+//example
+Email::sendHTML('no-reply@anybot.me', 'username@gmail.com', 'register', 
+    ['pass'=>keygen(6), 'email' => 'username@gmail.com'], 'Welcome to Anybot');
 ```
-Preparing
+
+your template file
+```bash
+#common layout
+${PROJECT_HOME}/views/mail/_layout.html
+#mail body
+${PROJECT_HOME}/views/mail/register.html
 ```
+
+An example of the mail template file, @see [HTML Template](#html-template)
+```html
+<!-- register.html -->
+<fieldset>
+  <legend>Your account info : </legend>
+  <ul>
+    <li>Email : <b>{$email}</b></li>
+    <li>Password : <b>{$pass}</b></li>
+  </ul>
+</fieldset>
+```
+
 
 ## CSV
-```
-Preparing
+
+### CSV Import
+```php
+/** Syntax
+ * @param file : local or remote filename
+ * @param table : db table(schema) name which can be found under conf/schemas/*.ini
+ * @param force : ignore errors
+ * @param encode : SJIS/UTF-8 ...
+ * @param max_rows : 0 means no limitaion
+ * @param row_parser : a function with input of raw data of each row, and output an array for import.
+ */
+Csv::import($file, $table, $force=true, $encode='SJIS', $max_rows=0, $row_parser);
+
 ```
 
-## GD2
-```
-Preparing
+### CSV Export
+```php
+/** Syntax
+ * @param file : the filename to save
+ * @param titles : an array contains titles of the 1st row
+ * @param datas : csv data list
+ * @param encode : SJIS/UTF-8 ...
+ */
+Csv::export($filename, $titles, $datas, $encode='SJIS');
+
 ```
 
 ## S3
+```php
+
+/**
+* upload a file to S3
+* @param [type] $fn : local file name
+* @param [type] $s3fn : s3 file name
+* @return void
+*/
+Amazon::s3upload($fn,$s3fn,$meta=[]);
+    
+/**
+* write data to a file in S3
+* @param [type] $body : file body
+* @param [type] $s3fn : s3 file name
+* @return void
+*/
+Amazon::s3write($body,$s3fn);
+
+/**
+* download a file from S3
+* @param [type] $bucket
+* @param [type] $s3fn : s3 file name
+* @param [type] $fn : donwload file name
+* @return void
+*/
+Amazon::s3download($bucket,$s3fn,$fn);
+
+/**
+* Remove a file from S3
+* @param [type] $bucket
+* @param [type] $s3fns : array of filename or filename string
+* @return void
+*/
+Amazon::s3remove($bucket,$s3fns);
+}
 ```
-Preparing
-```
+
+## GD2
+Image manipulation / combine / editing / croping ... <br>
+@see [GD.inc](https://github.com/Evolany/any.php/blob/master/modules/utils/GD.inc)
 
 ## DataSet
 ```

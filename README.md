@@ -1068,14 +1068,16 @@ these `Module` files can be found under
 ${PROJECT_HOME}/modules/*.inc
 ```
 
-for example, to use all features of FB
+for example, to use all features of FB, we put all methods into 
+```bash
+${PROJECT_HOME}/modules/Fb.inc
+```
+and to use a method, we can just call
 ```php
-//file path : /modules/Fb.inc
-
 //to get settings
 $settings = Fb::getSettings($token, 'menu');
-
 ```
+
 `NOTICE` : <br>
 * `Module` filename has to be `capitalized`. with an extenstion of `.inc`
 * All public methods should be `static` instead of `instance method`

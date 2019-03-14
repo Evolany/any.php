@@ -33,7 +33,7 @@ function create(){
 	mkdir("../".$proj);
 	exec("tar zxf miscs/files.tgz -C ../$proj/");
 	$path =explode("/",$pwd);
-	$path = join("/",array_slice($path, 0, count($path)-2))."/".$proj;
+	$path = join("/",array_slice($path, 0, count($path)-1))."/".$proj;
 	
 	build($proj);
 	//exec("cp init.inc ../$proj/");

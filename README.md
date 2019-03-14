@@ -63,7 +63,7 @@ git clone https://github.com/Evolany/any.php anyphp
 Create project
 ```sh
 cd YOUR_HTTP_DOCUMENT_ROOT/anyphp 
-./anyphp.php create myproj 
+php ./liberphp.php create myproj 
 cd ../myproj
 ```
 

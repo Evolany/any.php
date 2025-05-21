@@ -334,7 +334,7 @@ permission = F	;allow the default auth group (guest) to access with 1111 permiss
 
 [schema] 
 id = "BIGINT NOT NULL AUTO_INCREMENT" 
-ownerId	= "BIGINT NOT NULL" 
+ownerId	= "BIGINT NOT NULL"
 title	= "varchar(256)"	
 
 [index] 
@@ -342,6 +342,7 @@ ownerId = "normal"	;create index on ownerId
 
 [connect] 
 owner = "ownerId=staffs.id"	;create foreign key link to staffs table
+member_ids = "ownerId=staffs.id|join"	;create foreign key link to staffs table, and find all member ids and join them with ","
 
 ```
 ### NOTICE
@@ -447,6 +448,7 @@ Preparing
 ```
 [connect] 
 owner = "ownerId=staffs.id"	;create foreign key link to staffs table
+member_ids = "ownerId=staffs.id|join"	;create foreign key link to staffs table, and find all member ids and join them with ","
 ```
 2. in your db_find()
 ```
@@ -459,6 +461,10 @@ db_find([
   'fields'=>'id,ownerId,owner.name,owner.department', //owner will be selected as an array of elements with "id,name,department"
   'order' => 'owner.name'
 ]);
+
+db_find([
+  'fields'=>'id,ownerId,member_ids', //member_ids will be selected and joined as csv format: id1,id2,id3...
+])
 ```
 
 

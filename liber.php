@@ -2259,6 +2259,8 @@ function pdo_find($pdo, $table, $opts=[], $withCount=false, $pdoOpt=null, $schem
 			foreach ($conns as $conn => $def) {
 				$tc = $def['target_column'];
 				$r[$conn] = $extras[$conn][''.$r[$def['column']]];
+				if($def['func']=='join' && is_array($r[$conn])) 
+					$r[$conn] = join(',', array_map(function($r) use ($def){return $r[$def['func_column']];},$r[$conn]));
 				if($def['fields']!='*' && !in_array($tc, $def['fields']))
 					unset($r[$conn][$tc]);
 			}
@@ -2757,12 +2759,14 @@ function load_schemas($key, $dir=false){
 		if(!empty($s['connect'])){
 			$conns = [];
 			foreach ($s['connect'] as $ck => $cv) {
-				preg_match_all('/(?P<col>[\w\d_]+)\s*=\s*(?P<tbl>[\w\d_]+)\.(?P<tarCol>[\w\d_]+)/', $cv, $mc);
+				preg_match_all('/(?P<col>[\w\d_]+)\s*=\s*(?P<tbl>[\w\d_]+)\.(?P<tarCol>[\w\d_]+)\|*(?P<func>[\w_]*)\(*(?P<func_col>[\w\d_]*)\)*/', $cv, $mc);
 				if(!empty($mc['col'])&&!empty($mc['tbl'])&&!empty($mc['tarCol'])){
 					$conns[$ck] = [
 						'column' 		=> $mc['col'][0],
 						'table' 		=> $mc['tbl'][0],
 						'target_column' => $mc['tarCol'][0],
+						'func' 			=> $mc['func'][0]?:'',
+						'func_column' 	=> $mc['func_col'][0]?:'',
 					];
 				}else{
 					throw "DB ERR: wrong format in $f.ini [connect], should be [MAPPING_NAME = 'COLUMN_NAME = TABLE_NAME.COLUMN_NAME']";

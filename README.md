@@ -339,6 +339,10 @@ title	= "varchar(256)"
 
 [index] 
 ownerId = "normal"	;create index on ownerId
+
+[connect] 
+owner = "ownerId=staffs.id"	;create foreign key link to staffs table
+
 ```
 ### NOTICE
 * `[general]` > `name` must be same with the ini file name.
@@ -437,8 +441,24 @@ $id = $res[0]["last_id"];
 Preparing
 ```
 ### Table Connection
+1. in your ini file, add \[connect\] section
+   * "owner" : the name of the connection, you can use it as column name in db_find()
+   * "staffs.id" : staffs is table name, id is column name to link with
 ```
-Preparing
+[connect] 
+owner = "ownerId=staffs.id"	;create foreign key link to staffs table
+```
+2. in your db_find()
+```
+db_find([
+  'fields'=>'id,ownerId,owner', //owner will be selected as an array
+  'order' => 'owner.name'
+]);
+
+db_find([
+  'fields'=>'id,ownerId,owner.name,owner.department', //owner will be selected as an array of elements with "id,name,department"
+  'order' => 'owner.name'
+]);
 ```
 
 
